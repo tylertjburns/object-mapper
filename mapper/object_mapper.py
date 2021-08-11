@@ -235,10 +235,13 @@ class ObjectMapper(object):
             elif prop in from_props:
                 # try find property with the same name in the source
                 from_obj_child = from_props[prop]
-                if isinstance(from_obj_child, list):
-                    val = [map_obj(from_obj_child_i, allow_unmapped) for from_obj_child_i in from_obj_child]
-                else:
-                    val = map_obj(from_obj_child, allow_unmapped)
+                try:
+                    if isinstance(from_obj_child, list):
+                        val = [map_obj(from_obj_child_i, allow_unmapped) for from_obj_child_i in from_obj_child]
+                    else:
+                        val = map_obj(from_obj_child, allow_unmapped)
+                except ObjectMapperException as e:
+                    raise ObjectMapperException(f"Unable to map prop {prop} for {key_from}->{key_to}. {e}")
             
             else:
                 suppress_mapping = True
