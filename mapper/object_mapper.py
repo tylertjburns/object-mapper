@@ -241,7 +241,7 @@ class ObjectMapper(object):
                     else:
                         val = map_obj(from_obj_child, allow_unmapped)
                 except ObjectMapperException as e:
-                    raise ObjectMapperException(f"Unable to map prop {prop} for {key_from}->{key_to}. {e}")
+                    raise ObjectMapperException(f"Unable to map prop {prop} for {key_from} --> {key_to}. {e}")
             
             else:
                 suppress_mapping = True
