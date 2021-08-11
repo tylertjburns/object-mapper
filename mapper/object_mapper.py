@@ -2,8 +2,9 @@
 """
 Copyright (C) 2015, marazt. All rights reserved.
 """
-from inspect import getmembers, isroutine
+from inspect import getmembers, isroutine, signature
 from datetime import date, datetime
+
 
 from mapper.casedict import CaseDict
 from mapper.object_mapper_exception import ObjectMapperException
@@ -101,12 +102,12 @@ class ObjectMapper(object):
         :return: None
         """
 
-        if (type(type_from) is not type):
+        if (not isinstance(type_from, type)):
             raise ObjectMapperException("type_from must be a type")
 
-        if (type(type_to) is not type):
+        if (not isinstance(type_to, type)):
             raise ObjectMapperException("type_to must be a type")
-
+            
         if (mapping is not None and not isinstance(mapping, dict)):
             raise ObjectMapperException("mapping, if provided, must be a Dict type")
 
@@ -167,10 +168,6 @@ class ObjectMapper(object):
             key_to = to_type
         custom_mappings = self.mappings[key_from][key_to][1]
         
-        # Currently, all target class data members need to have default value
-        # Object with __init__ that carries required non-default arguments are not supported
-        inst = key_to()
-
         def not_private(s):
             return not s.startswith('_')
 
@@ -183,6 +180,12 @@ class ObjectMapper(object):
         from_obj_attributes = getmembers(from_obj, lambda a: not isroutine(a))
         from_obj_dict = {k: v for k, v in from_obj_attributes}
 
+        # support __init__ by passing arguments by keyword when instantiating the key_to
+        sig = signature(key_to.__init__)
+        kwargs = {x: from_obj_dict[x] for x in sig.parameters if x not in ('self', 'kwargs')}
+
+        inst = key_to(**kwargs)
+        
         to_obj_attributes = getmembers(inst, lambda a: not isroutine(a))
         to_obj_dict = {k: v for k, v in to_obj_attributes if not_excluded(k) and (not_private(k) or is_included(k, custom_mappings))}
 
