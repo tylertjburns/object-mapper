@@ -167,7 +167,9 @@ class ObjectMapper(object):
                 .format(key_from.__module__, key_from.__name__, to_type.__module__, to_type.__name__))
             key_to = to_type
         custom_mappings = self.mappings[key_from][key_to][1]
-        
+        custom_values = self.try_resolve_custom_mappings(from_obj, custom_mappings)
+
+
         def not_private(s):
             return not s.startswith('_')
 
@@ -179,12 +181,9 @@ class ObjectMapper(object):
 
         from_obj_attributes = getmembers(from_obj, lambda a: not isroutine(a))
         from_obj_dict = {k: v for k, v in from_obj_attributes}
-
+        from_obj_dict.update(custom_values)
         # support __init__ by passing arguments by keyword when instantiating the key_to
-        sig = signature(key_to.__init__)
-        kwargs = {x: from_obj_dict[x] for x in sig.parameters if x not in ('self', 'kwargs')}
-
-        inst = key_to(**kwargs)
+        inst = self.try_init_obj(key_to, from_obj_dict)
         
         to_obj_attributes = getmembers(inst, lambda a: not isroutine(a))
         to_obj_dict = {k: v for k, v in to_obj_attributes if not_excluded(k) and (not_private(k) or is_included(k, custom_mappings))}
@@ -250,3 +249,30 @@ class ObjectMapper(object):
                 setattr(inst, prop, val)
 
         return inst
+
+    def try_init_obj(self, key_to, from_obj_dict):
+        try:
+            sig = signature(key_to.__init__)
+            kwargs = {x: from_obj_dict[x] for x in sig.parameters if x not in ('self', 'kwargs')}
+
+            inst = key_to(**kwargs)
+            return inst
+        except:
+            raise ObjectMapperException()
+
+    def try_resolve_custom_mappings(self, inst, custom_mappings):
+        ret = {}
+
+        if custom_mappings is None:
+            return ret
+
+        for prop, func in custom_mappings.items():
+            val = None
+
+            try:
+                val = func(inst)
+                ret[prop] = val
+            except Exception:
+                raise ObjectMapperException(f"Invalid mapping function while setting property {inst.__class__.__name__}.{prop} using func mapper: {func}")
+
+        return ret
