@@ -278,7 +278,7 @@ class ObjectMapper(object):
         return ret
     
     @staticmethod
-    def try_setattr(inst, prop, val)
+    def try_setattr(inst, prop, val):
         #try/except to account for the fact that the attr might be a property without a setter. In this case, we rely 
         #on the __init__ to correctly set the val. This means that we are claiming that the state cannot change from 
         #resolveable/mappable properties. However, this needs to be a design consideration regardless when deciding 
